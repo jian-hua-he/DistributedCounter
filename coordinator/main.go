@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 )
 
 type Item struct {
@@ -26,11 +27,38 @@ func main() {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
 			w.Write(result)
-		case http.MethodPost:
-			fmt.Println("Post items")
 		default:
-			fmt.Println("Invalid method")
+			http.Error(w, "Not found", http.StatusNotFound)
+		}
+	})
+
+	http.HandleFunc("/items/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
+			matchStr := reg.FindStringSubmatch(r.URL.Path)
+			if len(matchStr) <= 1 {
+				http.Error(w, "Not found", http.StatusNotFound)
+				return
+			}
+
+			dummy := Item{
+				ID:     matchStr[1],
+				Tenant: "",
+			}
+			result, err := json.Marshal(dummy)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(result)
+		default:
+			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	})
 

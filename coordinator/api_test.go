@@ -45,6 +45,36 @@ func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, 
 	return resp, err
 }
 
+func TestPostNoItem(t *testing.T) {
+	// Start a new server
+	server := newTestServer()
+	defer server.Close()
+
+	// Sending get request
+	url := fmt.Sprintf("%s/items/Foo/count", server.URL)
+	resp, err := sendRequest("GET", url, nil)
+	if err != nil {
+		t.Fatalf("Error occurred in sending get request: error %#v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	// Assertion
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Get handler returned unexpected status code: got %#v, want %#v", resp.StatusCode, http.StatusOK)
+	}
+
+	var count Count
+	if err := json.NewDecoder(resp.Body).Decode(&count); err != nil {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		t.Fatalf("Get handler returned unexpected body: error %#v, body %#v", err.Error(), string(bodyBytes))
+	}
+
+	expect := Count{Count: 0}
+	if !reflect.DeepEqual(count, expect) {
+		t.Fatalf("Get handler returned unexpected body: got %#v, want %#v", count, expect)
+	}
+}
+
 func TestPostOneItem(t *testing.T) {
 	// Start a new server
 	server := newTestServer()
@@ -82,7 +112,6 @@ func TestPostOneItem(t *testing.T) {
 
 	// Sending get request
 	url = fmt.Sprintf("%s/items/Foo/count", server.URL)
-	fmt.Println(url)
 	resp, err = sendRequest("GET", url, nil)
 	if err != nil {
 		t.Fatalf("Error occurred in sending get request: error %#v", err.Error())

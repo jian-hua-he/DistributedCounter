@@ -17,16 +17,8 @@ type postItemHandler struct {
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("In postItemHandler")
 	switch r.Method {
-	case http.MethodGet:
-		result, err := json.Marshal(h.Items)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(result)
 	case http.MethodPost:
 		var item Item
 		err := json.NewDecoder(r.Body).Decode(&item)
@@ -47,20 +39,23 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(result)
 	default:
+		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
 
-type countItemHandler struct {
+type getItemHandler struct {
 	Items []Item
 }
 
-func (h *countItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("In getItemHandler")
 	switch r.Method {
 	case http.MethodGet:
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
 		matchStr := reg.FindStringSubmatch(r.URL.Path)
 		if len(matchStr) <= 1 {
+			log.Printf("Regex not matched")
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
@@ -79,6 +74,7 @@ func (h *countItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(result)
 	default:
+		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
@@ -87,11 +83,9 @@ func main() {
 	items := []Item{}
 	port := "80"
 
+	http.Handle("/items/", &getItemHandler{Items: items})
 	http.Handle("/items", &postItemHandler{Items: items})
 
-	http.Handle("/items/", &countItemHandler{Items: items})
-
 	log.Printf("Start coordinator at %s port", port)
-
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

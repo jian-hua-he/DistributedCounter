@@ -7,13 +7,21 @@ import (
 	"regexp"
 )
 
+type ItemService struct {
+	Items map[string]Item
+}
+
 type Item struct {
 	ID     string `json:"id"`
 	Tenant string `json:"tenant"`
 }
 
+type Count struct {
+	Count int `json:"count"`
+}
+
 type postItemHandler struct {
-	Items []Item
+	ItemService *ItemService
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +35,9 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.Items = append(h.Items, item)
+		h.ItemService.Items[item.ID] = item
+
+		log.Printf("Current items: %+v", h.ItemService.Items)
 
 		result, err := json.Marshal(item)
 		if err != nil {
@@ -45,7 +55,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type getItemHandler struct {
-	Items []Item
+	ItemService *ItemService
 }
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -60,11 +70,15 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dummy := Item{
-			ID:     matchStr[1],
-			Tenant: "",
+		tenant := matchStr[1]
+		count := Count{Count: 0}
+		for _, v := range h.ItemService.Items {
+			if v.Tenant == tenant {
+				count.Count += 1
+			}
 		}
-		result, err := json.Marshal(dummy)
+
+		result, err := json.Marshal(count)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -80,11 +94,13 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	items := []Item{}
+	service := ItemService{
+		Items: map[string]Item{},
+	}
 	port := "80"
 
-	http.Handle("/items/", &getItemHandler{Items: items})
-	http.Handle("/items", &postItemHandler{Items: items})
+	http.Handle("/items/", &getItemHandler{ItemService: &service})
+	http.Handle("/items", &postItemHandler{ItemService: &service})
 
 	log.Printf("Start coordinator at %s port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

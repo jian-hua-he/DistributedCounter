@@ -13,7 +13,12 @@ import (
 
 func TestPostItems(t *testing.T) {
 	// Start a new server
-	server := httptest.NewServer(new(postItemHandler))
+	service := ItemService{
+		Items: map[string]Item{},
+	}
+	server := httptest.NewServer(&postItemHandler{
+		ItemService: &service,
+	})
 	defer server.Close()
 
 	// Prepare posted data

@@ -93,6 +93,26 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
+	var req *http.Request
+	var err error
+
+	// Pass buf directly will cause nil pointer error if buf is nil
+	if buf == nil {
+		req, err = http.NewRequest(method, url, nil)
+	} else {
+		req, err = http.NewRequest(method, url, buf)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp, err
+}
+
 func main() {
 	service := ItemService{
 		Items: map[string]Item{},

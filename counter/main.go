@@ -8,7 +8,7 @@ import (
 )
 
 type ItemService struct {
-	Items map[string]Item
+	Items []Item
 }
 
 type Item struct {
@@ -20,6 +20,10 @@ type Count struct {
 	Count int `json:"count"`
 }
 
+type ResponseStatus struct {
+	Status string `json:"status"`
+}
+
 type postItemHandler struct {
 	ItemService *ItemService
 }
@@ -28,26 +32,24 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("In postItemHandler")
 	switch r.Method {
 	case http.MethodPost:
-		var item Item
-		err := json.NewDecoder(r.Body).Decode(&item)
+		var items []Item
+		err := json.NewDecoder(r.Body).Decode(&items)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		h.ItemService.Items[item.ID] = item
+		h.ItemService.Items = items
 
 		log.Printf("Current items: %+v", h.ItemService.Items)
 
-		result, err := json.Marshal(item)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		status := ResponseStatus{Status: "success"}
+		result, _ := json.Marshal(status)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(result)
+
 	default:
 		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -95,7 +97,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	service := ItemService{
-		Items: map[string]Item{},
+		Items: []Item{},
 	}
 	port := "80"
 

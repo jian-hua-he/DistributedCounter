@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,8 @@ func TestPostItems(t *testing.T) {
 	jsonStr, _ := json.Marshal(item)
 
 	// Sending post request
-	req, err := http.NewRequest("POST", server.URL, bytes.NewBuffer(jsonStr))
+	url := fmt.Sprintf("%s/items", server.URL)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)

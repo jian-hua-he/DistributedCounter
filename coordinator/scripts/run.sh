@@ -1,1 +1,1 @@
-docker run -it -v $(PWD)/..:/go/src/coordinator -p 8001:80 --rm golang:1.12 bash -c "cd /go/src/coordinator && go run main.go"
+docker run -it -v $(PWD):/go/src/coordinator -p 8080:80 --rm golang:1.12 bash -c "cd /go/src/coordinator && go run main.go"

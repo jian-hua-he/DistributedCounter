@@ -11,6 +11,20 @@ import (
 	"testing"
 )
 
+func newTestServer() *httptest.Server {
+	service := ItemService{
+		Items: map[string]Item{},
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/items/", &getItemHandler{
+		ItemService: &service,
+	})
+	mux.Handle("/items", &postItemHandler{
+		ItemService: &service,
+	})
+	return httptest.NewServer(mux)
+}
+
 func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, buf)
 	req.Header.Set("Content-Type", "application/json")
@@ -21,12 +35,7 @@ func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, 
 
 func TestPostItems(t *testing.T) {
 	// Start a new server
-	service := ItemService{
-		Items: map[string]Item{},
-	}
-	server := httptest.NewServer(&postItemHandler{
-		ItemService: &service,
-	})
+	server := newTestServer()
 	defer server.Close()
 
 	// Prepare posted data

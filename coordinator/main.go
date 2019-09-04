@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -18,11 +17,14 @@ type postItemHandler struct{}
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		dummy := Item{
-			ID:     "1",
-			Tenant: "Foo",
+		var item Item
+		err := json.NewDecoder(r.Body).Decode(&item)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
-		result, err := json.Marshal(dummy)
+
+		result, err := json.Marshal(item)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -72,10 +74,6 @@ func main() {
 	http.Handle("/items", new(postItemHandler))
 
 	http.Handle("/items/", new(countItemHandler))
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Test")
-	})
 
 	log.Printf("Start coordinator at %s port", port)
 

@@ -11,14 +11,18 @@ import (
 )
 
 func TestPostItems(t *testing.T) {
+	// Start a new server
 	server := httptest.NewServer(new(postItemHandler))
 	defer server.Close()
 
+	// Prepare posted data
 	item := Item{
 		ID:     "1",
 		Tenant: "Foo",
 	}
 	jsonStr, _ := json.Marshal(item)
+
+	// Sending post request
 	req, err := http.NewRequest("POST", server.URL, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
@@ -28,12 +32,13 @@ func TestPostItems(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
+	// Assertion
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Handler returned unexpected status code: got %#v, want %#v", resp.Status, http.StatusOK)
 	}
 
 	var target Item
-	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&target); err != nil {
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		t.Fatalf("Handler returned unexpected body: error %#v, body %#v", err.Error(), string(bodyBytes))
 	}

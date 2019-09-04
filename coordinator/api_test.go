@@ -11,6 +11,14 @@ import (
 	"testing"
 )
 
+func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, buf)
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp, err
+}
+
 func TestPostItems(t *testing.T) {
 	// Start a new server
 	service := ItemService{
@@ -30,10 +38,7 @@ func TestPostItems(t *testing.T) {
 
 	// Sending post request
 	url := fmt.Sprintf("%s/items", server.URL)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := sendRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
 		t.Fatalf("Error occurred in sending post request: error %#v", err.Error())
 	}

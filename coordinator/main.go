@@ -13,54 +13,65 @@ type Item struct {
 	Tenant string `json:"tenant"`
 }
 
+type postItemHandler struct{}
+
+func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		dummy := Item{
+			ID:     "1",
+			Tenant: "Foo",
+		}
+		result, err := json.Marshal(dummy)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(result)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
+
+type countItemHandler struct{}
+
+func (h *countItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
+		matchStr := reg.FindStringSubmatch(r.URL.Path)
+		if len(matchStr) <= 1 {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+
+		dummy := Item{
+			ID:     matchStr[1],
+			Tenant: "",
+		}
+		result, err := json.Marshal(dummy)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(result)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
+
 func main() {
 	port := "80"
 
-	http.HandleFunc("/items", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			dummy := Item{"1", "Foo"}
-			result, err := json.Marshal(dummy)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+	http.Handle("/items", new(postItemHandler))
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(result)
-		default:
-			http.Error(w, "Not found", http.StatusNotFound)
-		}
-	})
-
-	http.HandleFunc("/items/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
-			matchStr := reg.FindStringSubmatch(r.URL.Path)
-			if len(matchStr) <= 1 {
-				http.Error(w, "Not found", http.StatusNotFound)
-				return
-			}
-
-			dummy := Item{
-				ID:     matchStr[1],
-				Tenant: "",
-			}
-			result, err := json.Marshal(dummy)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(result)
-		default:
-			http.Error(w, "Not found", http.StatusNotFound)
-		}
-	})
+	http.Handle("/items/", new(countItemHandler))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Test")

@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+    coordinator:
+        container_name: coordinator
+        image: golang:1.12
+        ports:
+            - 8080:80
+        volumes:
+            - ./coordinator:/go/src/coordinator
+        environment:
+            - GO111MODULE=on
+        working_dir: /go/src/coordinator
+        networks:
+            - public_sonar_network
+        command: ./bin/coordinator
+
+volumes:
+    public_sonar_volumes:
+        driver: local
+
+networks:
+    public_sonar_network:
+        driver: bridge

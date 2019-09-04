@@ -26,6 +26,8 @@ services:
         working_dir: /go/src/counter
         networks:
             - public_sonar_network
+        expose:
+            - 80
         command: ./bin/counter
 
 volumes:

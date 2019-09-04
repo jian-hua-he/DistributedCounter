@@ -102,6 +102,6 @@ func main() {
 	http.Handle("/items/", &getItemHandler{ItemService: &service})
 	http.Handle("/items", &postItemHandler{ItemService: &service})
 
-	log.Printf("Start coordinator at %s port", port)
+	log.Printf("Start counter at %s port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

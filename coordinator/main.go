@@ -1,7 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -28,18 +29,20 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("In postItemHandler")
 	switch r.Method {
 	case http.MethodPost:
-		var item Item
-		err := json.NewDecoder(r.Body).Decode(&item)
+		resBodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		h.ItemService.Items[item.ID] = item
+		resp, err := sendRequest("POST", "http://counter/items", bytes.NewBuffer(resBodyBytes))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
 
-		log.Printf("Current items: %+v", h.ItemService.Items)
-
-		result, err := json.Marshal(item)
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -47,7 +50,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(result)
+		w.Write(bodyBytes)
 	default:
 		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -70,15 +73,14 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tenant := matchStr[1]
-		count := Count{Count: 0}
-		for _, v := range h.ItemService.Items {
-			if v.Tenant == tenant {
-				count.Count += 1
-			}
+		resp, err := sendRequest("GET", "http://counter/"+matchStr[0], nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		defer resp.Body.Close()
 
-		result, err := json.Marshal(count)
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -86,11 +88,24 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(result)
+		w.Write(bodyBytes)
 	default:
 		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
+}
+
+func main() {
+	service := ItemService{
+		Items: map[string]Item{},
+	}
+	port := "80"
+
+	http.Handle("/items/", &getItemHandler{ItemService: &service})
+	http.Handle("/items", &postItemHandler{ItemService: &service})
+
+	log.Printf("Start coordinator at %s port", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
@@ -111,17 +126,4 @@ func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	return resp, err
-}
-
-func main() {
-	service := ItemService{
-		Items: map[string]Item{},
-	}
-	port := "80"
-
-	http.Handle("/items/", &getItemHandler{ItemService: &service})
-	http.Handle("/items", &postItemHandler{ItemService: &service})
-
-	log.Printf("Start coordinator at %s port", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

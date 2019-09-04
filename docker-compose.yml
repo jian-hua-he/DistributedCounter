@@ -13,7 +13,20 @@ services:
         working_dir: /go/src/coordinator
         networks:
             - public_sonar_network
+        depends_on:
+            - counter
         command: ./bin/coordinator
+
+    counter:
+        image: golang:1.12
+        volumes:
+            - ./counter:/go/src/counter
+        environment:
+            - GO111MODULE=on
+        working_dir: /go/src/counter
+        networks:
+            - public_sonar_network
+        command: ./bin/counter
 
 volumes:
     public_sonar_volumes:

@@ -39,7 +39,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.ItemService.Items = items
+		h.ItemService.Items = append(h.ItemService.Items, items...)
 
 		log.Printf("Current items: %+v", h.ItemService.Items)
 
@@ -72,13 +72,14 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		itemMap := map[string]Item{}
 		tenant := matchStr[1]
-		count := Count{Count: 0}
 		for _, v := range h.ItemService.Items {
 			if v.Tenant == tenant {
-				count.Count += 1
+				itemMap[v.ID] = v
 			}
 		}
+		count := Count{Count: len(itemMap)}
 
 		result, err := json.Marshal(count)
 		if err != nil {

@@ -12,10 +12,21 @@ type Item struct {
 	Tenant string `json:"tenant"`
 }
 
-type postItemHandler struct{}
+type postItemHandler struct {
+	Items []Item
+}
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case http.MethodGet:
+		result, err := json.Marshal(h.Items)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(result)
 	case http.MethodPost:
 		var item Item
 		err := json.NewDecoder(r.Body).Decode(&item)
@@ -23,6 +34,8 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		h.Items = append(h.Items, item)
 
 		result, err := json.Marshal(item)
 		if err != nil {
@@ -38,7 +51,9 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type countItemHandler struct{}
+type countItemHandler struct {
+	Items []Item
+}
 
 func (h *countItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -69,11 +84,12 @@ func (h *countItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	items := []Item{}
 	port := "80"
 
-	http.Handle("/items", new(postItemHandler))
+	http.Handle("/items", &postItemHandler{Items: items})
 
-	http.Handle("/items/", new(countItemHandler))
+	http.Handle("/items/", &countItemHandler{Items: items})
 
 	log.Printf("Start coordinator at %s port", port)
 

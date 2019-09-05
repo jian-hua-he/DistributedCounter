@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -125,9 +126,13 @@ func main() {
 	if err := registerHost(hostname); err != nil {
 		log.Fatal("ERROR: " + err.Error())
 	}
+	items, err := syncItems()
+	if err != nil {
+		log.Fatal("ERROR: " + err.Error())
+	}
 
 	service := ItemService{
-		Items: []Item{},
+		Items: items,
 	}
 	http.Handle("/items/", &getItemHandler{ItemService: &service})
 	http.Handle("/items", &postItemHandler{ItemService: &service})
@@ -142,7 +147,6 @@ func registerHost(hostname string) error {
 	data := []byte(hostname)
 	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
 	defer resp.Body.Close()
-
 	if err != nil {
 		return err
 	}
@@ -152,6 +156,41 @@ func registerHost(hostname string) error {
 	}
 
 	return nil
+}
+
+func syncItems() ([]Item, error) {
+	resp, err := GET("http://coordinator/sync")
+	defer resp.Body.Close()
+	if err != nil {
+		return []Item{}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return []Item{}, errors.New("Sync fail")
+	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return []Item{}, err
+	}
+
+	var items []Item
+	if err := json.Unmarshal(bodyBytes, &items); err != nil {
+		return []Item{}, err
+	}
+
+	return items, nil
+}
+
+func GET(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &http.Response{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp, err
 }
 
 func POST(url string, buf *bytes.Buffer) (*http.Response, error) {

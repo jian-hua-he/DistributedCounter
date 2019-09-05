@@ -6,12 +6,14 @@ import (
 )
 
 type HostService struct {
-	Hosts map[string]string
+	// string is the hostname
+	// bool is represent new counter
+	Hosts map[string]bool
 }
 
 func main() {
 	hostServ := HostService{
-		Hosts: map[string]string{},
+		Hosts: map[string]bool{},
 	}
 
 	http.Handle("/items/", &getItemHandler{})

@@ -19,6 +19,12 @@ type postItemHandler struct {
 	HostService *HostService
 }
 
+type getItemHandler struct{}
+
+type registerHandler struct {
+	HostService *HostService
+}
+
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
@@ -33,7 +39,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// TODO: Need to implement 2PC to handle error
 		errors := []error{}
 		var wg sync.WaitGroup
-		for _, host := range h.HostService.Hosts {
+		for host, _ := range h.HostService.Hosts {
 			wg.Add(1)
 			go func(host string) {
 				url := fmt.Sprintf("http://%s/items", host)
@@ -44,6 +50,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				defer func(resp *http.Response) {
 					if resp != nil {
+						h.HostService.Hosts[host] = false
 						resp.Body.Close()
 					}
 				}(resp)
@@ -72,8 +79,6 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
-
-type getItemHandler struct{}
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
@@ -113,10 +118,6 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type registerHandler struct {
-	HostService *HostService
-}
-
 func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
@@ -132,7 +133,7 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		hostname := string(hostBytes)
-		h.HostService.Hosts[hostname] = hostname
+		h.HostService.Hosts[hostname] = true
 		log.Printf("INFO: all hosts %+v", h.HostService.Hosts)
 
 		w.Header().Set("Content-Type", "application/json")

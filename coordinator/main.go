@@ -5,15 +5,22 @@ import (
 	"net/http"
 )
 
+type Host struct {
+	Name     string
+	IsNew    bool
+	Attempts int
+}
+
 type HostService struct {
 	// string is the hostname
 	// bool is represent new counter
-	Hosts map[string]bool
+	// Hosts map[string]bool
+	Hosts map[string]Host
 }
 
 func main() {
 	hostServ := HostService{
-		Hosts: map[string]bool{},
+		Hosts: map[string]Host{},
 	}
 
 	http.Handle("/items/", &ItemCountHandler{})

@@ -43,21 +43,20 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// TODO: Need to implement 2PC to handle error
 		errors := []error{}
 		var wg sync.WaitGroup
-		for host, _ := range h.HostService.Hosts {
+		for _, host := range h.HostService.Hosts {
 			wg.Add(1)
-			go func(host string) {
-				url := fmt.Sprintf("http://%s/items", host)
+			go func(host Host) {
+				url := fmt.Sprintf("http://%s/items", host.Name)
 				resp, err := POST(url, bytes.NewBuffer(resBodyBytes))
 				if err != nil {
 					log.Printf("ERROR: %s", err.Error())
 					errors = append(errors, err)
 				}
 				defer func(resp *http.Response) {
-					if resp != nil {
-						h.HostService.Hosts[host] = false
-						resp.Body.Close()
-					}
+					resp.Body.Close()
 				}(resp)
+				host.IsNew = false
+				h.HostService.Hosts[host.Name] = host
 				wg.Done()
 			}(host)
 		}
@@ -136,8 +135,14 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("fail\n"))
 			return
 		}
+
 		hostname := string(hostBytes)
-		h.HostService.Hosts[hostname] = true
+		host := Host{
+			Name:     hostname,
+			IsNew:    true,
+			Attempts: 0,
+		}
+		h.HostService.Hosts[hostname] = host
 		log.Printf("INFO: all hosts %+v", h.HostService.Hosts)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -157,12 +162,12 @@ func (h *SyncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// TODO: Check the token to ensure the request is from counter
 
-		for host, isNew := range h.HostService.Hosts {
-			if isNew {
+		for hostname, host := range h.HostService.Hosts {
+			if host.IsNew {
 				continue
 			}
 
-			url := fmt.Sprintf("http://%s/items", host)
+			url := fmt.Sprintf("http://%s/items", hostname)
 			resp, err := GET(url)
 			if err != nil {
 				log.Printf("ERROR: %s", err.Error())

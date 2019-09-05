@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"sync"
 )
 
 type Host struct {
@@ -12,12 +13,23 @@ type Host struct {
 }
 
 type HostService struct {
-	// string is the hostname
-	// bool is represent new counter
-	// Hosts map[string]bool
+	Lock  sync.RWMutex
 	Hosts map[string]Host
 }
 
+func (hs *HostService) UpdateHost(h Host) {
+	hs.Lock.Lock()
+	defer hs.Lock.Unlock()
+
+	hs.Hosts[h.Name] = h
+}
+
+func (hs *HostService) DeleteHost(hostname string) {
+	hs.Lock.Lock()
+	defer hs.Lock.Unlock()
+
+	delete(hs.Hosts, hostname)
+}
 func main() {
 	hostServ := HostService{
 		Hosts: map[string]Host{},

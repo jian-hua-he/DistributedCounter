@@ -23,8 +23,11 @@ func main() {
 	http.Handle("/register", &registerHandler{
 		HostService: &hostServ,
 	})
+	http.Handle("/sync", &syncHandler{
+		HostService: &hostServ,
+	})
 
 	port := "80"
-	log.Printf("INFO: Start coordinator at %s port", port)
+	log.Printf("INFO: start coordinator at %s port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

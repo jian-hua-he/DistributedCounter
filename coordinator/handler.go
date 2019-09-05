@@ -154,7 +154,7 @@ func (h *syncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
-	case http.MethodPost:
+	case http.MethodGet:
 		// TODO: Check the token to ensure the request is from counter
 
 		for host, isNew := range h.HostService.Hosts {
@@ -182,6 +182,7 @@ func (h *syncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write(bodyBytes)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")

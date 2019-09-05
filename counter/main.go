@@ -35,6 +35,12 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
+	case http.MethodGet:
+		items, _ := json.Marshal(h.ItemService.Items)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(items)
+
 	case http.MethodPost:
 		var items []Item
 		err := json.NewDecoder(r.Body).Decode(&items)
@@ -95,6 +101,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(result)
+
 	default:
 		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)

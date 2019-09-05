@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
 )
+
+type HostService struct {
+	Hosts map[string]string
+}
 
 type ItemService struct {
 	Items map[string]Item
@@ -27,6 +32,7 @@ type postItemHandler struct {
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("In postItemHandler")
+
 	switch r.Method {
 	case http.MethodPost:
 		resBodyBytes, err := ioutil.ReadAll(r.Body)
@@ -51,6 +57,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(bodyBytes)
+
 	default:
 		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -63,6 +70,7 @@ type getItemHandler struct {
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("In getItemHandler")
+
 	switch r.Method {
 	case http.MethodGet:
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
@@ -89,6 +97,53 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(bodyBytes)
+
+	default:
+		log.Printf("Unaccept method")
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
+
+type regiesterHandler struct {
+	HostService *HostService
+}
+
+func (h *regiesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("In registerHandler")
+
+	switch r.Method {
+	case http.MethodPost:
+		// TODO: Check the token to ensure the request is from counter
+
+		hostBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Print("Error: " + err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("fail\n"))
+			return
+		}
+
+		hostname := string(hostBytes)
+		url := fmt.Sprintf("http://%s/health", hostname)
+		resp, err := sendRequest("GET", url, nil)
+		if err != nil {
+			log.Print("Error: " + err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			log.Print("Error: health check fail")
+			http.Error(w, "health check fail", http.StatusInternalServerError)
+			return
+		}
+
+		h.HostService.Hosts[hostname] = hostname
+		log.Printf("All hosts: %+v", h.HostService.Hosts)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success\n"))
+
 	default:
 		log.Printf("Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
@@ -99,10 +154,14 @@ func main() {
 	service := ItemService{
 		Items: map[string]Item{},
 	}
+	hostServ := HostService{
+		Hosts: map[string]string{},
+	}
 	port := "80"
 
 	http.Handle("/items/", &getItemHandler{ItemService: &service})
 	http.Handle("/items", &postItemHandler{ItemService: &service})
+	http.Handle("/register", &regiesterHandler{HostService: &hostServ})
 
 	log.Printf("Start coordinator at %s port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))

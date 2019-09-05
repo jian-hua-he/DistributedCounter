@@ -43,7 +43,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			wg.Add(1)
 			go func(host string) {
 				url := fmt.Sprintf("http://%s/items", host)
-				resp, err := sendRequest("POST", url, bytes.NewBuffer(resBodyBytes))
+				resp, err := POST(url, bytes.NewBuffer(resBodyBytes))
 				if err != nil {
 					log.Printf("ERROR: %s", err.Error())
 					errors = append(errors, err)
@@ -93,7 +93,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := sendRequest("GET", "http://counter/"+matchStr[0], nil)
+		resp, err := GET("http://counter/" + matchStr[0])
 		if err != nil {
 			log.Printf("ERROR: %s", err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -146,19 +146,22 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
-	var req *http.Request
-	var err error
 
-	// Pass buf directly will cause nil pointer error if buf is nil
-	if buf == nil {
-		req, err = http.NewRequest(method, url, nil)
-	} else {
-		req, err = http.NewRequest(method, url, buf)
-	}
-
+func GET(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &http.Response{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp, err
+}
+
+func POST(url string, buf *bytes.Buffer) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, buf)
+	if err != nil {
+		return &http.Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}

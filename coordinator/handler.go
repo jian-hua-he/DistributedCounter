@@ -109,21 +109,7 @@ func (h *regiesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("fail\n"))
 			return
 		}
-
 		hostname := string(hostBytes)
-		url := fmt.Sprintf("http://%s/health", hostname)
-		resp, err := sendRequest("GET", url, nil)
-		if err != nil {
-			log.Print("Error: " + err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if resp.StatusCode != http.StatusOK {
-			log.Print("Error: health check fail")
-			http.Error(w, "health check fail", http.StatusInternalServerError)
-			return
-		}
-
 		h.HostService.Hosts[hostname] = hostname
 		log.Printf("All hosts: %+v", h.HostService.Hosts)
 

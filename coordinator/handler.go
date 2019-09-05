@@ -95,7 +95,7 @@ type registerHandler struct {
 	HostService *HostService
 }
 
-func (h *regiesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL.String())
 
 	switch r.Method {

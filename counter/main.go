@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 )
 
@@ -96,6 +97,13 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type healthHandler struct{}
+
+func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success\n"))
+}
+
 func main() {
 	service := ItemService{
 		Items: []Item{},
@@ -104,7 +112,12 @@ func main() {
 
 	http.Handle("/items/", &getItemHandler{ItemService: &service})
 	http.Handle("/items", &postItemHandler{ItemService: &service})
+	http.Handle("/health", &healthHandler{})
 
-	log.Printf("Start counter at %s port", port)
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	log.Printf("Start %s at %s port", hostname, port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

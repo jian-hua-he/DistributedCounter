@@ -53,7 +53,9 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					errors = append(errors, err)
 				}
 				defer func(resp *http.Response) {
-					resp.Body.Close()
+					if resp != nil {
+						resp.Body.Close()
+					}
 				}(resp)
 				host.IsNew = false
 				h.HostService.Hosts[host.Name] = host
@@ -203,7 +205,7 @@ func (h *SyncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func GET(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return &http.Response{}, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
@@ -214,7 +216,7 @@ func GET(url string) (*http.Response, error) {
 func POST(url string, buf *bytes.Buffer) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
-		return &http.Response{}, err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}

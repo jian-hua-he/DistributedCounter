@@ -16,14 +16,14 @@ func main() {
 		Hosts: map[string]bool{},
 	}
 
-	http.Handle("/items/", &getItemHandler{})
-	http.Handle("/items", &postItemHandler{
+	http.Handle("/items/", &ItemCountHandler{})
+	http.Handle("/items", &ItemHandler{
 		HostService: &hostServ,
 	})
-	http.Handle("/register", &registerHandler{
+	http.Handle("/register", &RegisterHandler{
 		HostService: &hostServ,
 	})
-	http.Handle("/sync", &syncHandler{
+	http.Handle("/sync", &SyncHandler{
 		HostService: &hostServ,
 	})
 

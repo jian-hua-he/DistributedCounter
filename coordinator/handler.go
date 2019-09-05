@@ -15,21 +15,21 @@ type ResponseStatus struct {
 	Status string `json:"status"`
 }
 
-type postItemHandler struct {
+type ItemHandler struct {
 	HostService *HostService
 }
 
-type getItemHandler struct{}
+type ItemCountHandler struct{}
 
-type registerHandler struct {
+type RegisterHandler struct {
 	HostService *HostService
 }
 
-type syncHandler struct {
+type SyncHandler struct {
 	HostService *HostService
 }
 
-func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
@@ -84,7 +84,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
@@ -122,7 +122,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
@@ -150,7 +150,7 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *syncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *SyncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {

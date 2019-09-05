@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -109,19 +111,58 @@ func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	service := ItemService{
-		Items: []Item{},
-	}
-	port := "80"
-
-	http.Handle("/items/", &getItemHandler{ItemService: &service})
-	http.Handle("/items", &postItemHandler{ItemService: &service})
-	http.Handle("/health", &healthHandler{})
-
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	if err := registerHost(hostname); err != nil {
+		log.Fatal(err)
+	}
+
+	service := ItemService{
+		Items: []Item{},
+	}
+	http.Handle("/items/", &getItemHandler{ItemService: &service})
+	http.Handle("/items", &postItemHandler{ItemService: &service})
+	http.Handle("/health", &healthHandler{})
+
+	port := "80"
 	log.Printf("Start %s at %s port", hostname, port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func registerHost(hostname string) error {
+	data := []byte(hostname)
+	resp, err := sendRequest("POST", "http://coordinator/register", bytes.NewBuffer(data))
+	defer resp.Body.Close()
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("Register fail")
+	}
+
+	return nil
+}
+
+func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
+	var req *http.Request
+	var err error
+
+	// Pass buf directly will cause nil pointer error if buf is nil
+	if buf == nil {
+		req, err = http.NewRequest(method, url, nil)
+	} else {
+		req, err = http.NewRequest(method, url, buf)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp, err
 }

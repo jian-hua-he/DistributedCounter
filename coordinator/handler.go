@@ -156,8 +156,37 @@ func (h *syncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		// TODO: Check the token to ensure the request is from counter
+
+		for host, isNew := range h.HostService.Hosts {
+			if isNew {
+				continue
+			}
+
+			url := fmt.Sprintf("http://%s/items", host)
+			resp, err := GET(url)
+			if err != nil {
+				log.Printf("ERROR: %s", err.Error())
+				continue
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				continue
+			}
+
+			bodyBytes, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("ERROR: %s", err.Error())
+				continue
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(bodyBytes)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		w.Write([]byte("[]"))
 
 	default:
 		log.Print("INFO: Unaccept method")

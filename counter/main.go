@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 )
 
 type ItemService struct {
@@ -24,126 +23,7 @@ type Count struct {
 	Count int `json:"count"`
 }
 
-type ResponseStatus struct {
-	Status string `json:"status"`
-}
-
-type postItemHandler struct {
-	ItemService *ItemService
-}
-
-func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("INFO: %s %s", r.Method, r.URL.String())
-
-	switch r.Method {
-	case http.MethodGet:
-		items, _ := json.Marshal(h.ItemService.Items)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(items)
-
-	case http.MethodPost:
-		var items []Item
-		err := json.NewDecoder(r.Body).Decode(&items)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		h.ItemService.Items = append(h.ItemService.Items, items...)
-
-		log.Printf("INFO: current items %+v", h.ItemService.Items)
-
-		status := ResponseStatus{Status: "success"}
-		result, _ := json.Marshal(status)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(result)
-
-	default:
-		log.Printf("INFO: Unaccept method")
-		http.Error(w, "Not found", http.StatusNotFound)
-	}
-}
-
-type getItemHandler struct {
-	ItemService *ItemService
-}
-
-func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("INFO: %s %s", r.Method, r.URL.String())
-
-	switch r.Method {
-	case http.MethodGet:
-		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
-		matchStr := reg.FindStringSubmatch(r.URL.Path)
-		if len(matchStr) <= 1 {
-			log.Print("INFO: Regex not matched")
-			http.Error(w, "Not found", http.StatusNotFound)
-			return
-		}
-
-		itemMap := map[string]Item{}
-		tenant := matchStr[1]
-		for _, v := range h.ItemService.Items {
-			if v.Tenant == tenant {
-				itemMap[v.ID] = v
-			}
-		}
-		count := Count{Count: len(itemMap)}
-
-		result, err := json.Marshal(count)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(result)
-
-	default:
-		log.Print("INFO: Unaccept method")
-		http.Error(w, "Not found", http.StatusNotFound)
-	}
-}
-
-type healthHandler struct{}
-
-func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("INFO: %s %s", r.Method, r.URL.String())
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("success\n"))
-}
-
-func main() {
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("ERROR: " + err.Error())
-	}
-	if err := registerHost(hostname); err != nil {
-		log.Fatal("ERROR: " + err.Error())
-	}
-	items, err := syncItems()
-	if err != nil {
-		log.Fatal("ERROR: " + err.Error())
-	}
-
-	service := ItemService{
-		Items: items,
-	}
-	http.Handle("/items/", &getItemHandler{ItemService: &service})
-	http.Handle("/items", &postItemHandler{ItemService: &service})
-	http.Handle("/health", &healthHandler{})
-
-	port := "80"
-	log.Printf("INFO: start %s at %s port", hostname, port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
-func registerHost(hostname string) error {
+func RegisterHost(hostname string) error {
 	data := []byte(hostname)
 	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
 	defer resp.Body.Close()
@@ -158,7 +38,7 @@ func registerHost(hostname string) error {
 	return nil
 }
 
-func syncItems() ([]Item, error) {
+func SyncItems() ([]Item, error) {
 	resp, err := GET("http://coordinator/sync")
 	defer resp.Body.Close()
 	if err != nil {
@@ -182,24 +62,27 @@ func syncItems() ([]Item, error) {
 	return items, nil
 }
 
-func GET(url string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func main() {
+	hostname, err := os.Hostname()
 	if err != nil {
-		return &http.Response{}, err
+		log.Fatal("ERROR: " + err.Error())
 	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	return resp, err
-}
+	if err := RegisterHost(hostname); err != nil {
+		log.Fatal("ERROR: " + err.Error())
+	}
+	items, err := SyncItems()
+	if err != nil {
+		log.Fatal("ERROR: " + err.Error())
+	}
 
-func POST(url string, buf *bytes.Buffer) (*http.Response, error) {
-	req, err := http.NewRequest("POST", url, buf)
-	if err != nil {
-		return &http.Response{}, err
+	service := ItemService{
+		Items: items,
 	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	return resp, err
+	http.Handle("/items/", &ItemCountHandler{ItemService: &service})
+	http.Handle("/items", &ItemHandler{ItemService: &service})
+	http.Handle("/health", &HealthHandler{})
+
+	port := "80"
+	log.Printf("INFO: start %s at %s port", hostname, port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

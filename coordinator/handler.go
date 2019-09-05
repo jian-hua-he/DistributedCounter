@@ -20,7 +20,7 @@ type postItemHandler struct {
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodPost:
@@ -39,7 +39,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				url := fmt.Sprintf("http://%s/items", host)
 				resp, err := sendRequest("POST", url, bytes.NewBuffer(resBodyBytes))
 				if err != nil {
-					log.Printf("Error: %s", err.Error())
+					log.Printf("ERROR: %s", err.Error())
 					errors = append(errors, err)
 				}
 				defer func(resp *http.Response) {
@@ -68,7 +68,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(result)
 
 	default:
-		log.Printf("Unaccept method")
+		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
@@ -76,28 +76,30 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type getItemHandler struct{}
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodGet:
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
 		matchStr := reg.FindStringSubmatch(r.URL.Path)
 		if len(matchStr) <= 1 {
-			log.Printf("Regex not matched")
+			log.Print("INFO: Regex not matched")
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
 
 		resp, err := sendRequest("GET", "http://counter/"+matchStr[0], nil)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("ERROR: %s", err.Error())
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("ERROR: %s", err.Error())
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
@@ -106,7 +108,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(bodyBytes)
 
 	default:
-		log.Printf("Unaccept method")
+		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
@@ -116,7 +118,7 @@ type registerHandler struct {
 }
 
 func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodPost:
@@ -124,21 +126,21 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		hostBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Print("Error: " + err.Error())
+			log.Print("ERROR: " + err.Error())
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("fail\n"))
 			return
 		}
 		hostname := string(hostBytes)
 		h.HostService.Hosts[hostname] = hostname
-		log.Printf("All hosts: %+v", h.HostService.Hosts)
+		log.Printf("INFO: all hosts %+v", h.HostService.Hosts)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success\n"))
 
 	default:
-		log.Printf("Unaccept method")
+		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }

@@ -32,7 +32,7 @@ type postItemHandler struct {
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodPost:
@@ -45,7 +45,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		h.ItemService.Items = append(h.ItemService.Items, items...)
 
-		log.Printf("Current items: %+v", h.ItemService.Items)
+		log.Printf("INFO: current items %+v", h.ItemService.Items)
 
 		status := ResponseStatus{Status: "success"}
 		result, _ := json.Marshal(status)
@@ -55,7 +55,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(result)
 
 	default:
-		log.Printf("Unaccept method")
+		log.Printf("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
@@ -65,14 +65,14 @@ type getItemHandler struct {
 }
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodGet:
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
 		matchStr := reg.FindStringSubmatch(r.URL.Path)
 		if len(matchStr) <= 1 {
-			log.Printf("Regex not matched")
+			log.Print("INFO: Regex not matched")
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
 		}
@@ -96,7 +96,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(result)
 	default:
-		log.Printf("Unaccept method")
+		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }
@@ -104,7 +104,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type healthHandler struct{}
 
 func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s %s", r.Method, r.URL.String())
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("success\n"))
@@ -113,10 +113,10 @@ func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("ERROR: " + err.Error())
 	}
 	if err := registerHost(hostname); err != nil {
-		log.Fatal(err)
+		log.Fatal("ERROR: " + err.Error())
 	}
 
 	service := ItemService{
@@ -127,7 +127,7 @@ func main() {
 	http.Handle("/health", &healthHandler{})
 
 	port := "80"
-	log.Printf("Start %s at %s port", hostname, port)
+	log.Printf("INFO: start %s at %s port", hostname, port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 

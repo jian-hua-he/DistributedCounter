@@ -23,6 +23,6 @@ func main() {
 	})
 
 	port := "80"
-	log.Printf("Start coordinator at %s port", port)
+	log.Printf("INFO: Start coordinator at %s port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type Host struct {
@@ -30,10 +32,59 @@ func (hs *HostService) DeleteHost(hostname string) {
 
 	delete(hs.Hosts, hostname)
 }
+
+func (hs HostService) CheckHealth() {
+	maxAttempts := 3
+
+	for _, host := range hs.Hosts {
+		if host.Attempts == maxAttempts {
+			log.Printf("INFO: remove host %s", host.Name)
+			hs.DeleteHost(host.Name)
+			continue
+		}
+
+		url := fmt.Sprintf("http://%s/health", host.Name)
+		resp, err := GET(url)
+		if err != nil {
+			log.Printf("ERROR: %s", err.Error())
+			host.Attempts += 1
+			hs.UpdateHost(host)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			host.Attempts += 1
+			hs.UpdateHost(host)
+			continue
+		}
+
+		host.Attempts = 0
+		hs.UpdateHost(host)
+	}
+}
+
+func HealthCheck(hostServ *HostService) {
+	// d := time.Duration(time.Minute * 1)
+	d := time.Duration(time.Second * 30)
+	t := time.NewTicker(d)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			log.Printf("INFO: start health check")
+			log.Printf("INFO: all hosts %+v", hostServ.Hosts)
+			hostServ.CheckHealth()
+		}
+	}
+}
+
 func main() {
 	hostServ := HostService{
 		Hosts: map[string]Host{},
 	}
+
+	go HealthCheck(&hostServ)
 
 	http.Handle("/items/", &ItemCountHandler{})
 	http.Handle("/items", &ItemHandler{

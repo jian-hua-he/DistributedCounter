@@ -58,14 +58,14 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					}
 				}(resp)
 				host.IsNew = false
-				h.HostService.Hosts[host.Name] = host
+				h.HostService.UpdateHost(host)
 				wg.Done()
 			}(host)
 		}
 		wg.Wait()
 
 		if len(errors) != 0 {
-			status := ResponseStatus{Status: "fail"}
+			status := ResponseStatus{Status: "failed"}
 			result, _ := json.Marshal(status)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -144,7 +144,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			IsNew:    true,
 			Attempts: 0,
 		}
-		h.HostService.Hosts[hostname] = host
+		h.HostService.UpdateHost(host)
 		log.Printf("INFO: all hosts %+v", h.HostService.Hosts)
 
 		w.Header().Set("Content-Type", "application/json")

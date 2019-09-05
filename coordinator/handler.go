@@ -16,7 +16,6 @@ type ResponseStatus struct {
 }
 
 type postItemHandler struct {
-	ItemService *ItemService
 	HostService *HostService
 }
 
@@ -54,9 +53,7 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type getItemHandler struct {
-	ItemService *ItemService
-}
+type getItemHandler struct{}
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s", r.Method, r.URL.String())

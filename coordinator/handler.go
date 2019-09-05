@@ -30,22 +30,42 @@ func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := sendRequest("POST", "http://counter/items", bytes.NewBuffer(resBodyBytes))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		// TODO: Need to implement 2PC to handle error
+		errors := []error{}
+		var wg sync.WaitGroup
+		for _, host := range h.HostService.Hosts {
+			wg.Add(1)
+			go func(host string) {
+				url := fmt.Sprintf("http://%s/items", host)
+				resp, err := sendRequest("POST", url, bytes.NewBuffer(resBodyBytes))
+				if err != nil {
+					log.Printf("Error: %s", err.Error())
+					errors = append(errors, err)
+				}
+				defer func(resp *http.Response) {
+					if resp != nil {
+						resp.Body.Close()
+					}
+				}(resp)
+				wg.Done()
+			}(host)
+		}
+		wg.Wait()
+
+		if len(errors) != 0 {
+			status := ResponseStatus{Status: "fail"}
+			result, _ := json.Marshal(status)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(result)
 			return
 		}
-		defer resp.Body.Close()
 
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
+		status := ResponseStatus{Status: "success"}
+		result, _ := json.Marshal(status)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(bodyBytes)
+		w.Write(result)
 
 	default:
 		log.Printf("Unaccept method")

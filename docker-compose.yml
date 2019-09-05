@@ -13,8 +13,6 @@ services:
         working_dir: /go/src/coordinator
         networks:
             - public_sonar_network
-        depends_on:
-            - counter
         command: ./bin/coordinator
 
     counter:
@@ -28,6 +26,8 @@ services:
             - public_sonar_network
         expose:
             - 80
+        depends_on:
+            - coordinator
         command: ./bin/counter
 
 volumes:

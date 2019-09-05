@@ -18,7 +18,7 @@ func main() {
 	http.Handle("/items", &postItemHandler{
 		HostService: &hostServ,
 	})
-	http.Handle("/register", &regiesterHandler{
+	http.Handle("/register", &registerHandler{
 		HostService: &hostServ,
 	})
 

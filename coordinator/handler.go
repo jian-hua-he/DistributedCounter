@@ -91,7 +91,7 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type regiesterHandler struct {
+type registerHandler struct {
 	HostService *HostService
 }
 

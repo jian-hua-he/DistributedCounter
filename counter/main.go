@@ -140,7 +140,7 @@ func main() {
 
 func registerHost(hostname string) error {
 	data := []byte(hostname)
-	resp, err := sendRequest("POST", "http://coordinator/register", bytes.NewBuffer(data))
+	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
 	defer resp.Body.Close()
 
 	if err != nil {
@@ -154,19 +154,10 @@ func registerHost(hostname string) error {
 	return nil
 }
 
-func sendRequest(method string, url string, buf *bytes.Buffer) (*http.Response, error) {
-	var req *http.Request
-	var err error
-
-	// Pass buf directly will cause nil pointer error if buf is nil
-	if buf == nil {
-		req, err = http.NewRequest(method, url, nil)
-	} else {
-		req, err = http.NewRequest(method, url, buf)
-	}
-
+func POST(url string, buf *bytes.Buffer) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
-		return nil, err
+		return &http.Response{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}

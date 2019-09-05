@@ -2,12 +2,18 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
+	"sync"
 )
+
+type ResponseStatus struct {
+	Status string `json:"status"`
+}
 
 type postItemHandler struct {
 	ItemService *ItemService
@@ -15,7 +21,7 @@ type postItemHandler struct {
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("In postItemHandler")
+	log.Printf("%s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodPost:
@@ -53,7 +59,7 @@ type getItemHandler struct {
 }
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("In getItemHandler")
+	log.Printf("%s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodGet:
@@ -93,7 +99,7 @@ type regiesterHandler struct {
 }
 
 func (h *regiesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("In registerHandler")
+	log.Printf("%s %s", r.Method, r.URL.String())
 
 	switch r.Method {
 	case http.MethodPost:

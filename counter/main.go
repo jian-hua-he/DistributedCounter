@@ -30,7 +30,8 @@ type postItemHandler struct {
 }
 
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("In postItemHandler")
+	log.Printf("%s %s", r.Method, r.URL.String())
+
 	switch r.Method {
 	case http.MethodPost:
 		var items []Item
@@ -62,7 +63,8 @@ type getItemHandler struct {
 }
 
 func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("In getItemHandler")
+	log.Printf("%s %s", r.Method, r.URL.String())
+
 	switch r.Method {
 	case http.MethodGet:
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
@@ -100,6 +102,8 @@ func (h *getItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type healthHandler struct{}
 
 func (h *healthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%s %s", r.Method, r.URL.String())
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("success\n"))
 }

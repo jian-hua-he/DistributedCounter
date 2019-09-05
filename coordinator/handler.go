@@ -25,6 +25,10 @@ type registerHandler struct {
 	HostService *HostService
 }
 
+type syncHandler struct {
+	HostService *HostService
+}
+
 func (h *postItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
@@ -146,6 +150,20 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *syncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
+
+	switch r.Method {
+	case http.MethodPost:
+		// TODO: Check the token to ensure the request is from counter
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+
+	default:
+		log.Print("INFO: Unaccept method")
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+}
 
 func GET(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)

@@ -19,6 +19,10 @@ type Count struct {
 	Count int `json:"count"`
 }
 
+type Status struct {
+	Status string `json:"status"`
+}
+
 // GET: Send the request with GET method
 func GET(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)

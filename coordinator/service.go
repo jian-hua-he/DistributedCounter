@@ -48,7 +48,7 @@ func (hs HostService) CheckHealth() {
 	maxAttempts := 3
 
 	for _, host := range hs.Hosts {
-		if host.Attempts == maxAttempts {
+		if host.Attempts >= maxAttempts {
 			log.Printf("INFO: remove host %s", host.Name)
 			hs.DeleteHost(host.Name)
 			continue

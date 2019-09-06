@@ -26,10 +26,6 @@ type RegisterHandler struct {
 	HostService *HostService
 }
 
-type SyncHandler struct {
-	HostService *HostService
-}
-
 func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
@@ -201,6 +197,37 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		// TODO: Check the token to ensure the request is from counter
 
+		// Prepare sync data
+		syncData := []byte("[]")
+		isNew := true
+		for hostname, host := range h.HostService.Hosts {
+			if host.IsNew {
+				continue
+			}
+
+			url := fmt.Sprintf("http://%s/items", hostname)
+			resp, err := GET(url)
+			if err != nil {
+				log.Printf("ERROR: error during sync. host %s, error %s", hostname, err.Error())
+				continue
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("ERROR: error during sync. host %s, response code is %s", hostname, resp.StatusCode)
+				continue
+			}
+
+			bodyBytes, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("ERROR: error during sync. host %s, error %s", hostname, err.Error())
+				continue
+			}
+
+			isNew = false
+			syncData = bodyBytes
+		}
+
+		// Register
 		hostBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Print("ERROR: " + err.Error())
@@ -212,7 +239,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname := string(hostBytes)
 		host := Host{
 			Name:     hostname,
-			IsNew:    true,
+			IsNew:    isNew,
 			Attempts: 0,
 		}
 		h.HostService.UpdateHost(host)
@@ -220,53 +247,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success\n"))
-
-	default:
-		log.Print("INFO: Unaccept method")
-		http.Error(w, "Not found", http.StatusNotFound)
-	}
-}
-
-func (h *SyncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("INFO: %s %s", r.Method, r.URL.String())
-
-	switch r.Method {
-	case http.MethodGet:
-		// TODO: Check the token to ensure the request is from counter
-
-		for hostname, host := range h.HostService.Hosts {
-			if host.IsNew {
-				continue
-			}
-
-			url := fmt.Sprintf("http://%s/items", hostname)
-			resp, err := GET(url)
-			if err != nil {
-				log.Printf("ERROR: error during sync. %s", err.Error())
-				continue
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				log.Printf("ERROR: error during sync. response code is %s", resp.StatusCode)
-				continue
-			}
-
-			bodyBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				log.Printf("ERROR: error during sync. %s", err.Error())
-				continue
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(bodyBytes)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("[]"))
+		w.Write(syncData)
 
 	default:
 		log.Print("INFO: Unaccept method")

@@ -19,6 +19,17 @@ type HostService struct {
 	Hosts map[string]Host
 }
 
+type Item struct {
+	ID     string `json:"id"`
+	Tenant string `json:"tenant"`
+}
+
+type Vote struct {
+	ID        string    `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
+	Data      []Item    `json:"data"`
+}
+
 func (hs *HostService) UpdateHost(h Host) {
 	hs.Lock.Lock()
 	defer hs.Lock.Unlock()

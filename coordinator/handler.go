@@ -136,6 +136,10 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					log.Printf("ERROR: error occurred in commit phase. %s", err.Error())
 					return
 				}
+				if host.IsNew {
+					host.IsNew = false
+					h.HostService.UpdateHost(host)
+				}
 			}(host)
 		}
 		wgCommit.Wait()

@@ -243,7 +243,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if resp.StatusCode != http.StatusOK {
-				log.Printf("ERROR: error during sync. host %s, response code is %s", hostname, resp.StatusCode)
+				log.Printf("ERROR: error during sync. host %s, response code is %v", hostname, resp.StatusCode)
 				continue
 			}
 

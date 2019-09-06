@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"sync"
+	"time"
 )
 
 type ResponseStatus struct {
@@ -34,37 +35,82 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		resBodyBytes, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		// Validate item
+		var items []Item
+		if err := json.NewDecoder(r.Body).Decode(&items); err != nil {
+			log.Printf("ERROR: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// TODO: Need to implement 2PC to handle error
-		errors := []error{}
+		// Start 2PC
+		// Vote phase
+		now := time.Now()
+		vote, _ := json.Marshal(Vote{
+			ID:        GenID(now),
+			Timestamp: now,
+			Data:      items,
+		})
+		voteResults := make([]bool, 0)
 		var wg sync.WaitGroup
 		for _, host := range h.HostService.Hosts {
 			wg.Add(1)
 			go func(host Host) {
-				url := fmt.Sprintf("http://%s/items", host.Name)
-				resp, err := POST(url, bytes.NewBuffer(resBodyBytes))
-				if err != nil {
-					log.Printf("ERROR: %s", err.Error())
-					errors = append(errors, err)
-				}
+				url := fmt.Sprintf("http://%s/vote", host.Name)
+				resp, err := POST(url, bytes.NewBuffer(vote))
 				defer func(resp *http.Response) {
 					if resp != nil {
 						resp.Body.Close()
 					}
+					wg.Done()
 				}(resp)
-				host.IsNew = false
-				h.HostService.UpdateHost(host)
-				wg.Done()
+				if err != nil {
+					log.Printf("ERROR: error occurred in vote phase %s", err.Error())
+					voteResults = append(voteResults, false)
+					return
+				}
+
+				if resp.StatusCode == http.StatusOK {
+					voteResults = append(voteResults, true)
+				} else {
+					voteResults = append(voteResults, false)
+				}
 			}(host)
 		}
 		wg.Wait()
 
-		if len(errors) != 0 {
+		// Check vote results
+		rollback := false
+		for _, v := range voteResults {
+			if v == false {
+				rollback = true
+				break
+			}
+		}
+
+		// Rollback phase
+		if rollback {
+			var wg sync.WaitGroup
+			for _, host := range h.HostService.Hosts {
+				wg.Add(1)
+				go func(host Host) {
+					url := fmt.Sprintf("http://%s/rollback", host.Name)
+					resp, err := POST(url, bytes.NewBuffer(vote))
+					defer func(resp *http.Response) {
+						if resp != nil {
+							resp.Body.Close()
+						}
+						wg.Done()
+					}(resp)
+					if err != nil {
+						log.Printf("ERROR: error occurred in rollback phase. %s", err.Error())
+						return
+					}
+				}(host)
+			}
+			wg.Wait()
+
 			status := ResponseStatus{Status: "failed"}
 			result, _ := json.Marshal(status)
 			w.Header().Set("Content-Type", "application/json")
@@ -72,6 +118,27 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write(result)
 			return
 		}
+
+		// Commit phase
+		var wgCommit sync.WaitGroup
+		for _, host := range h.HostService.Hosts {
+			wgCommit.Add(1)
+			go func(host Host) {
+				url := fmt.Sprintf("http://%s/commit", host.Name)
+				resp, err := POST(url, bytes.NewBuffer(vote))
+				defer func(resp *http.Response) {
+					if resp != nil {
+						resp.Body.Close()
+					}
+					wgCommit.Done()
+				}(resp)
+				if err != nil {
+					log.Printf("ERROR: error occurred in commit phase. %s", err.Error())
+					return
+				}
+			}(host)
+		}
+		wgCommit.Wait()
 
 		status := ResponseStatus{Status: "success"}
 		result, _ := json.Marshal(status)

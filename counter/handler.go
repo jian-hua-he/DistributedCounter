@@ -44,25 +44,6 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(items)
 
-	case http.MethodPost:
-		var items []Item
-		err := json.NewDecoder(r.Body).Decode(&items)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		h.ItemService.Items = append(h.ItemService.Items, items...)
-
-		log.Printf("INFO: current items %+v", h.ItemService.Items)
-
-		status := ResponseStatus{Status: "success"}
-		result, _ := json.Marshal(status)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(result)
-
 	default:
 		log.Printf("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)

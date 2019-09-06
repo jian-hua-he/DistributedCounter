@@ -73,18 +73,18 @@ Every Counter will sync the data when it launched. It will send a request to the
 
 ```
 
-         +-------------+
-         | Coordinator |
-         +-------------+
-         ^  |         |
-1.       |  | 3.      | 2.
-register |  | Send    | Get items 
-& sync   |  | items   | data
-         |  V         v
-  +---------+        +---------+
-  |   New   |        | Counter |
-  | Counter |        +---------+
-  +---------+
+           +-------------+
+           | Coordinator |
+           +-------------+
+           ^  |         |
+  1.       |  | 3.      | 2.
+  register |  | Send    | Get items 
+  & sync   |  | items   | data
+           |  V         v
+    +---------+        +---------+
+    |   New   |        | Counter |
+    | Counter |        +---------+
+    +---------+
 
 ```
 
@@ -106,7 +106,6 @@ I try to implement 2 phase commit(2PC) to keep the data consistent in all Counte
 If any failure happens, like network timeout, Counter failure, etc. It would be considered as a NO answer in the first phase.
 
 ```
-
 1. Query to all Counters. All Counter creates a transaction.
 
           +-------------+
@@ -146,7 +145,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
   | Counter |        | Counter |
   +---------+        +---------+
 
-3-1. If all nodes vote YES, then commit and remove transaction
+3-2. If all nodes vote YES, then commit and remove transaction
 
           +-------------+
           | Coordinator |
@@ -167,22 +166,35 @@ But it cannot handle the error occurred during the commit or rollback.
 
 I use `docker-compose` to build all services. The query is relay on `docker-compose` network interface. When you send a request to the Coordinator. it will automatically forward your request to the random Counter. So, If the single Counter failed. It won’t effect the query.
 
-## PROS
+## Consideration
 
-- Stable for query. Some of the Counter down still can do query
-- Easy to launch new Counter node
-- Event some Counter is down. The data will keep consistent and queryable
+### The Decision
 
-## CONS
+I've made a conscious decision to sacrifice efficiency (write) to consistency. Based on the theorem of CAP:
 
-- If the Coordinator is down. All services should restart. Because the registration table is only kept in memory
-- The update will keep failing when one of the Counter is down. It only succeeds when the Counter recovers or the Coordinator remove the host from the registration table
-- Update data would be more slowly if we have more Counters node.
+```
+C (Consistency)
+A (Availability)
+P (Partition Tolerance)
+```
+
+My design is more like the CP system. Although the Coordinator has the Single Point of Failure issue. If we store the registration table into the persistent layer. The SPOF problem would be solved. A (Availability) is the part we traded-off. The reason why I choose this is because of the requirements did mention the data consistency and allow client query data with single node failure.
+
+### The Good
+
+- Stability: even if some of the Counters are down, one can still do query without issue
+- Consistency: the data is always synced among Counters so the user will always get the correct data when some of the nodes failed
+- Scalability: One can easily add new Counter node throw single command
+
+### The Bad
+
+- Single Point of Failure (SPOF) remains: Coordinator is the SPOF. If it's down, all services would have to be restarted. (as registration tables are only kept in memory)
+- Churning: the update request will keep failing when one of the Counter is down. Only when the Counter recovers or the Coordinator remove the host from the registration table will the system restore to a healthy state
+- Inefficiency (write): when there are more Counter nodes in the system, the update would become slower exponentially.
 
 ## References
 
 - [Distributed systems](http://book.mixu.net/distsys/)
 - [Two-phase commit protocol](https://en.wikipedia.org/wiki/Two-phase_commit_protocol)
 - [EASY COMMIT: A NON-BLOCKING TWO-PHASE COMMIT PROTOCOL](https://pdfs.semanticscholar.org/fcf2/eda96a3e71cbb2efce558384dc39415251be.pdf)
-- [Vector Clocks](http://courses.cs.vt.edu/~cs5204/fall00/vector_clocks.html)
-- 
+- [CAP Theorem and Distributed Database Management Systems](https://towardsdatascience.com/cap-theorem-and-distributed-database-management-systems-5c2be977950e)

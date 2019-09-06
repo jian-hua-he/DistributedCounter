@@ -11,10 +11,15 @@ import (
 	"os"
 )
 
+// RegisterHost: Send the request to coordinator and get the initial items
 func RegisterHost(hostname string) ([]Item, error) {
 	data := []byte(hostname)
 	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
-	defer resp.Body.Close()
+	defer func(resp *http.Response) {
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}(resp)
 	if err != nil {
 		log.Printf("ERROR: error occurr during register. %s", err.Error())
 		return []Item{}, err

@@ -9,12 +9,12 @@ The Coordinator helps all Counters to sync data. Get data from all Counters. If 
 - Update items: Update all items by using 2PC implementation.
 - Get tenant count: Get tenant count from Counters
 
-## Opened urls
+## URLs
 
 ```
-POST /items                 # Update items
+POST /items                 # Update items to all Counters
 
-GET  /items/{tenant}/count  # Get tenant count from Counter
+GET  /items/{tenant}/count  # Get tenant count from a Counter
 
 POST /register              # Register Counter into Coordinator. 
                             # Only accept request from the Count

@@ -93,6 +93,7 @@ func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		result, err := json.Marshal(count)
 		if err != nil {
+			log.Printf("ERROR: %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -110,22 +111,74 @@ func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *VoteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("success\n"))
+	switch r.Method {
+	case http.MethodPost:
+		var tran Transaction
+		err := json.NewDecoder(r.Body).Decode(&tran)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		h.ItemService.TransAppend(tran)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success\n"))
+
+	default:
+		log.Print("INFO: Unaccept method")
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
+
 }
 
 func (h *CommitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("success\n"))
+	switch r.Method {
+	case http.MethodPost:
+		var tran Transaction
+		err := json.NewDecoder(r.Body).Decode(&tran)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		h.ItemService.DoTrans(tran.ID)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success\n"))
+
+	default:
+		log.Print("INFO: Unaccept method")
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 func (h *RollbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INFO: %s %s", r.Method, r.URL.String())
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("success\n"))
+	switch r.Method {
+	case http.MethodPost:
+		var tran Transaction
+		err := json.NewDecoder(r.Body).Decode(&tran)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		h.ItemService.AbortTrans(tran.ID)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success\n"))
+
+	default:
+		log.Print("INFO: Unaccept method")
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -63,34 +64,46 @@ func RegisterHost(hostname string) error {
 	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
 	defer resp.Body.Close()
 	if err != nil {
+		log.Printf("ERROR: error occurr during register. %s", err.Error())
 		return err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("Register fail")
+		msg := fmt.Sprintf("Register status code %v", resp.StatusCode)
+		err := errors.New(msg)
+		log.Printf("ERROR: error occurr during register. %s", err.Error())
+		return err
 	}
 
 	return nil
 }
 
 func SyncItems() ([]Item, error) {
+	log.Print("INFO: start to sync process")
+
 	resp, err := GET("http://coordinator/sync")
 	defer resp.Body.Close()
 	if err != nil {
+		log.Printf("ERROR: error occured during sync. %s", err.Error())
 		return []Item{}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return []Item{}, errors.New("Sync fail")
+		msg := fmt.Sprintf("Sync status code %v", resp.StatusCode)
+		err := errors.New(msg)
+		log.Printf("ERROR: error occured during sync. %s", err.Error())
+		return []Item{}, err
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("ERROR: error occured during sync. %s", err.Error())
 		return []Item{}, err
 	}
 
 	var items []Item
 	if err := json.Unmarshal(bodyBytes, &items); err != nil {
+		log.Printf("ERROR: error occured during sync. %s", err.Error())
 		return []Item{}, err
 	}
 

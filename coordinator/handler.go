@@ -243,17 +243,18 @@ func (h *SyncHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			url := fmt.Sprintf("http://%s/items", hostname)
 			resp, err := GET(url)
 			if err != nil {
-				log.Printf("ERROR: %s", err.Error())
+				log.Printf("ERROR: error during sync. %s", err.Error())
 				continue
 			}
 
 			if resp.StatusCode != http.StatusOK {
+				log.Printf("ERROR: error during sync. response code is %s", resp.StatusCode)
 				continue
 			}
 
 			bodyBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Printf("ERROR: %s", err.Error())
+				log.Printf("ERROR: error during sync. %s", err.Error())
 				continue
 			}
 

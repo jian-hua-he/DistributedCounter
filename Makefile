@@ -10,6 +10,10 @@ build:
 up:
 	docker-compose up -d --scale counter=$(COUNTER_SCALE)
 
+.PHONY: down
+down:
+	docker-compose down
+
 .PHONY: logs
 logs:
 	docker-compose logs -f coordinator counter

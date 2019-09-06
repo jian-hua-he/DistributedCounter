@@ -75,8 +75,7 @@ func (hs HostService) CheckHealth() {
 }
 
 func HealthCheck(hostServ *HostService) {
-	// d := time.Duration(time.Minute * 1)
-	d := time.Duration(time.Second * 30)
+	d := time.Duration(time.Second * 10)
 	t := time.NewTicker(d)
 	defer t.Stop()
 

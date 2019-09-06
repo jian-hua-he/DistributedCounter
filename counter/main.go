@@ -11,39 +11,19 @@ import (
 	"os"
 )
 
-func RegisterHost(hostname string) error {
+func RegisterHost(hostname string) ([]Item, error) {
 	data := []byte(hostname)
 	resp, err := POST("http://coordinator/register", bytes.NewBuffer(data))
 	defer resp.Body.Close()
 	if err != nil {
 		log.Printf("ERROR: error occurr during register. %s", err.Error())
-		return err
+		return []Item{}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("Register status code %v", resp.StatusCode)
 		err := errors.New(msg)
 		log.Printf("ERROR: error occurr during register. %s", err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func SyncItems() ([]Item, error) {
-	log.Print("INFO: start to sync process")
-
-	resp, err := GET("http://coordinator/sync")
-	defer resp.Body.Close()
-	if err != nil {
-		log.Printf("ERROR: error occured during sync. %s", err.Error())
-		return []Item{}, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("Sync status code %v", resp.StatusCode)
-		err := errors.New(msg)
-		log.Printf("ERROR: error occured during sync. %s", err.Error())
 		return []Item{}, err
 	}
 
@@ -67,13 +47,12 @@ func main() {
 	if err != nil {
 		log.Fatal("ERROR: " + err.Error())
 	}
-	if err := RegisterHost(hostname); err != nil {
-		log.Fatal("ERROR: " + err.Error())
-	}
-	items, err := SyncItems()
+
+	items, err := RegisterHost(hostname)
 	if err != nil {
 		log.Fatal("ERROR: " + err.Error())
 	}
+
 	service := ItemService{
 		Items:        items,
 		Transactions: []Transaction{},

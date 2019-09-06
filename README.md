@@ -133,7 +133,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
   | Counter |        | Counter |
   +---------+        +---------+
 
-3-1. If any node vote NO, then rollback and remove Transaction
+3-1. If any node vote NO, then rollback and remove transaction
 
           +-------------+
           | Coordinator |
@@ -146,7 +146,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
   | Counter |        | Counter |
   +---------+        +---------+
 
-3-1. If all nodes vote YES, then commit and remove Transaction
+3-1. If all nodes vote YES, then commit and remove transaction
 
           +-------------+
           | Coordinator |
@@ -165,9 +165,7 @@ But it cannot handle the error occurred during the commit or rollback.
 
 ### Query data
 
-I use `docker-compose` to build all services. The query is relay on `docker-compose` network interface. When you send a request to the Coordinator. it will automatically forward your request to the random Counter.
-
-If the single Counter failed. It won’t effect the query.
+I use `docker-compose` to build all services. The query is relay on `docker-compose` network interface. When you send a request to the Coordinator. it will automatically forward your request to the random Counter. So, If the single Counter failed. It won’t effect the query.
 
 ## PROS
 
@@ -180,3 +178,11 @@ If the single Counter failed. It won’t effect the query.
 - If the Coordinator is down. All services should restart. Because the registration table is only kept in memory
 - The update will keep failing when one of the Counter is down. It only succeeds when the Counter recovers or the Coordinator remove the host from the registration table
 - Update data would be more slowly if we have more Counters node.
+
+## References
+
+- [Distributed systems](http://book.mixu.net/distsys/)
+- [Two-phase commit protocol](https://en.wikipedia.org/wiki/Two-phase_commit_protocol)
+- [EASY COMMIT: A NON-BLOCKING TWO-PHASE COMMIT PROTOCOL](https://pdfs.semanticscholar.org/fcf2/eda96a3e71cbb2efce558384dc39415251be.pdf)
+- [Vector Clocks](http://courses.cs.vt.edu/~cs5204/fall00/vector_clocks.html)
+- 

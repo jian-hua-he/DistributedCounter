@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
+// HealthCheck: Do health check in every 10 second
 func HealthCheck(hostServ *HostService) {
+	maxAttempts := 3
 	d := time.Duration(time.Second * 10)
 	t := time.NewTicker(d)
 	defer t.Stop()
@@ -16,7 +18,7 @@ func HealthCheck(hostServ *HostService) {
 		case <-t.C:
 			log.Printf("INFO: start health check")
 			log.Printf("INFO: all hosts %+v", hostServ.Hosts)
-			hostServ.CheckHealth()
+			hostServ.CheckHealth(maxAttempts)
 		}
 	}
 }

@@ -12,16 +12,27 @@ import (
 	"time"
 )
 
+// ResponseStatus: For json response.
+// Status would be "success" or "failed"
 type ResponseStatus struct {
 	Status string `json:"status"`
 }
 
+// ItemHandler: Handle http://hostname/items request
+// For send items data to Counters
+// Implement 2 phase commit to ensuring the data consistent in all Counters
 type ItemHandler struct {
 	HostService *HostService
 }
 
+// ItemCountHandler: Handle http://hostname/items/{tenant}/count request
+// Get data from the Counters
 type ItemCountHandler struct{}
 
+// RegisterHandler: Handle http://hostname/register request
+// Only accept request from the Counters
+// Register the Counters to Coordinator
+// Also sync the data to the new regist Counter
 type RegisterHandler struct {
 	HostService *HostService
 }
@@ -54,6 +65,8 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			wg.Add(1)
 			go func(host Host) {
 				url := fmt.Sprintf("http://%s/vote", host.Name)
+
+				// Send vote request
 				resp, err := POST(url, bytes.NewBuffer(vote))
 				defer func(resp *http.Response) {
 					if resp != nil {
@@ -61,6 +74,8 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					}
 					wg.Done()
 				}(resp)
+
+				// Failed is considered as the rejection
 				if err != nil {
 					log.Printf("ERROR: error occurred in vote phase %s", err.Error())
 					voteResults = append(voteResults, false)
@@ -77,6 +92,8 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		wg.Wait()
 
 		// Check vote results
+		// If there is rejection in the vote results
+		// then rollback the transaction
 		rollback := false
 		for _, v := range voteResults {
 			if v == false {
@@ -86,6 +103,7 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Rollback phase
+		// Send rollback message to all Counters
 		if rollback {
 			var wg sync.WaitGroup
 			for _, host := range h.HostService.Hosts {
@@ -116,6 +134,8 @@ func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Commit phase
+		// Send commit message to all Counters
+		// Mark the host is commited (IsNew = false)
 		var wgCommit sync.WaitGroup
 		for _, host := range h.HostService.Hosts {
 			wgCommit.Add(1)
@@ -157,6 +177,7 @@ func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// Check request url
 		reg := regexp.MustCompile(`^\/items\/(.*)\/(count)$`)
 		matchStr := reg.FindStringSubmatch(r.URL.Path)
 		if len(matchStr) <= 1 {
@@ -165,13 +186,20 @@ func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Send the request to counter
+		// The hostname is defined in docker-compose.yml
+		// Request will evenly be divided to all Counters
 		resp, err := GET("http://counter/" + matchStr[0])
+		defer func(resp *http.Response) {
+			if resp != nil {
+				resp.Body.Close()
+			}
+		}(resp)
 		if err != nil {
 			log.Printf("ERROR: %s", err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		defer resp.Body.Close()
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -201,10 +229,12 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		syncData := []byte("[]")
 		isNew := true
 		for hostname, host := range h.HostService.Hosts {
+			// If the Counter is a new host, skip this one
 			if host.IsNew {
 				continue
 			}
 
+			// Send the request to Counter
 			url := fmt.Sprintf("http://%s/items", hostname)
 			resp, err := GET(url)
 			if err != nil {
@@ -223,11 +253,12 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
+			// Mark the host is dirty
 			isNew = false
 			syncData = bodyBytes
 		}
 
-		// Register
+		// Register the new Counter
 		hostBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Print("ERROR: " + err.Error())
@@ -243,6 +274,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Attempts: 0,
 		}
 		h.HostService.UpdateHost(host)
+
 		log.Printf("INFO: all hosts %+v", h.HostService.Hosts)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -255,6 +287,7 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GET: Send the request with GET method
 func GET(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -266,6 +299,7 @@ func GET(url string) (*http.Response, error) {
 	return resp, err
 }
 
+// POST: Send the request with POST method
 func POST(url string, buf *bytes.Buffer) (*http.Response, error) {
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {

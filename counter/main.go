@@ -74,12 +74,15 @@ func main() {
 	if err != nil {
 		log.Fatal("ERROR: " + err.Error())
 	}
-
 	service := ItemService{
 		Items: items,
 	}
+
 	http.Handle("/items/", &ItemCountHandler{ItemService: &service})
 	http.Handle("/items", &ItemHandler{ItemService: &service})
+	http.Handle("/vote", &VoteHandler{})
+	http.Handle("/commit", &CommitHandler{})
+	http.Handle("/rollback", &RollbackHandler{})
 	http.Handle("/health", &HealthHandler{})
 
 	port := "80"

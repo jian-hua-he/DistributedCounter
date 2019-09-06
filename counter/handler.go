@@ -20,6 +20,12 @@ type ItemCountHandler struct {
 	ItemService *ItemService
 }
 
+type VoteHandler struct{}
+
+type CommitHandler struct{}
+
+type RollbackHandler struct{}
+
 type HealthHandler struct{}
 
 func (h *ItemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +99,27 @@ func (h *ItemCountHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Print("INFO: Unaccept method")
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
+}
+
+func (h *VoteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success\n"))
+}
+
+func (h *CommitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success\n"))
+}
+
+func (h *RollbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Printf("INFO: %s %s", r.Method, r.URL.String())
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("success\n"))
 }
 
 func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

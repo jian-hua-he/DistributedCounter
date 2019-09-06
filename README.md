@@ -65,7 +65,7 @@ We have a Coordinator and multiple Counters. The Coordinator is responsible to s
 
 ### Register counter
 
-Every Counter will register to the Coordinator when the Counter start. Also if we launch a new Counter. It will also register to the Coordinator and also sync the data from the Coordinator.
+Every Counter will register to the Coordinator when the Counter start. If we launch a new Counter. It will also register to the Coordinator and sync the data from the Coordinator.
 
 ### Sync data
 

@@ -12,7 +12,7 @@ services:
             - GO111MODULE=on
         working_dir: /go/src/coordinator
         networks:
-            - public_sonar_network
+            - dis_sys_network
         command: ./bin/coordinator
 
     counter:
@@ -23,7 +23,7 @@ services:
             - GO111MODULE=on
         working_dir: /go/src/counter
         networks:
-            - public_sonar_network
+            - dis_sys_network
         expose:
             - 80
         depends_on:
@@ -31,9 +31,9 @@ services:
         command: ./bin/counter
 
 volumes:
-    public_sonar_volumes:
+    dis_sys_volumes:
         driver: local
 
 networks:
-    public_sonar_network:
+    dis_sys_network:
         driver: bridge

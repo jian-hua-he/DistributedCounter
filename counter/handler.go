@@ -20,11 +20,17 @@ type ItemCountHandler struct {
 	ItemService *ItemService
 }
 
-type VoteHandler struct{}
+type VoteHandler struct {
+	ItemService *ItemService
+}
 
-type CommitHandler struct{}
+type CommitHandler struct {
+	ItemService *ItemService
+}
 
-type RollbackHandler struct{}
+type RollbackHandler struct {
+	ItemService *ItemService
+}
 
 type HealthHandler struct{}
 

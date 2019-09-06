@@ -8,10 +8,45 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
+type Transaction struct {
+	ID        string    `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
+	Data      []Item    `json:"data"`
+}
+
 type ItemService struct {
-	Items []Item
+	Items        []Item
+	Transactions []Transaction
+}
+
+func (s *ItemService) TransAppend(t Transaction) {
+	s.Transactions = append(s.Transactions, t)
+}
+
+func (s *ItemService) DoTrans(id string) {
+	for i, t := range s.Transactions {
+		if t.ID != id {
+			continue
+		}
+
+		s.Items = append(s.Items, t.Data...)
+		s.Transactions = append(s.Transactions[:i], s.Transactions[i+1:]...)
+		break
+	}
+}
+
+func (s *ItemService) AbortTrans(id string) {
+	for i, t := range s.Transactions {
+		if t.ID != id {
+			continue
+		}
+
+		s.Transactions = append(s.Transactions[:i], s.Transactions[i+1:]...)
+		break
+	}
 }
 
 type Item struct {
@@ -75,14 +110,15 @@ func main() {
 		log.Fatal("ERROR: " + err.Error())
 	}
 	service := ItemService{
-		Items: items,
+		Items:        items,
+		Transactions: []Transaction{},
 	}
 
 	http.Handle("/items/", &ItemCountHandler{ItemService: &service})
 	http.Handle("/items", &ItemHandler{ItemService: &service})
-	http.Handle("/vote", &VoteHandler{})
-	http.Handle("/commit", &CommitHandler{})
-	http.Handle("/rollback", &RollbackHandler{})
+	http.Handle("/vote", &VoteHandler{ItemService: &service})
+	http.Handle("/commit", &CommitHandler{ItemService: &service})
+	http.Handle("/rollback", &RollbackHandler{ItemService: &service})
 	http.Handle("/health", &HealthHandler{})
 
 	port := "80"

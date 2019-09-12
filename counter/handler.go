@@ -8,26 +8,26 @@ import (
 	"regexp"
 )
 
-// ItemHandler: Handle http://hostname/items request
+// ItemHandler: Handle http://{hostname}/items request
 // Return all items for sync data usage
 type ItemHandler struct {
 	ItemService *ItemService
 }
 
-// ItemCountHandler: Handle http://hostname/items/{tenant}/count request
+// ItemCountHandler: Handle http://{hostname}/items/{tenant}/count request
 // Return the count of tenant
 type ItemCountHandler struct {
 	ItemService *ItemService
 }
 
-// VoteHandler: Handle http://hostname/vote request
+// VoteHandler: Handle http://{hostname}/vote request
 // For first phase of 2PC
 // Save the transaction to ItemService
 type VoteHandler struct {
 	ItemService *ItemService
 }
 
-// CommitHandler: Handle http://hostname/commit request
+// CommitHandler: Handle http://{hostname}/commit request
 // For second phase (commit) of 2PC
 // Put data from the transaction to items in ItemService
 // After that, remove the transaction
@@ -35,14 +35,14 @@ type CommitHandler struct {
 	ItemService *ItemService
 }
 
-// RollbackHandler: Handle http://hostname/rollback request
+// RollbackHandler: Handle http://{hostname}/rollback request
 // For second phase (rollback) of 2PC
 // Cancel and remove the transaction
 type RollbackHandler struct {
 	ItemService *ItemService
 }
 
-// HealthHandler: Handle http://hostname/health request
+// HealthHandler: Handle http://{hostname}/health request
 // For health check
 type HealthHandler struct{}
 

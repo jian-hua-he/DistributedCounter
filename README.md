@@ -56,7 +56,7 @@ We have a Coordinator and multiple Counters. The Coordinator is responsible to s
                      |
        +-------------+-------------+
        |             |             |
-       V             v             v
+       v             v             v
   +---------+   +---------+   +---------+
   | Counter |   | Counter |   | Counter |
   +---------+   +---------+   +---------+
@@ -78,9 +78,9 @@ Every Counter will sync the data when it launched. It will send a request to the
            +-------------+
            ^  |         |
   1.       |  | 3.      | 2.
-  register |  | Send    | Get items 
+  Register |  | Send    | Get items 
   & sync   |  | items   | data
-           |  V         v
+           |  v         v
     +---------+        +---------+
     |   New   |        | Counter |
     | Counter |        +---------+
@@ -114,7 +114,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
             |        |
             |        |
             |        |
-            V        V
+            v        v
   +---------+        +---------+
   | Counter |        | Counter |
   +---------+        +---------+
@@ -140,7 +140,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
             |        |
             |        |
    Rollback |        | Rollback
-            V        V
+            v        v
   +---------+        +---------+
   | Counter |        | Counter |
   +---------+        +---------+
@@ -153,7 +153,7 @@ If any failure happens, like network timeout, Counter failure, etc. It would be 
             |        |
             |        |
      Commit |        | Commit
-            V        V
+            v        v
   +---------+        +---------+
   | Counter |        | Counter |
   +---------+        +---------+
